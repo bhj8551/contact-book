@@ -3,13 +3,14 @@
 // module가져오기
 let express = require('express');
 let mongoose = require('mongoose');
+let bodyParser = require('body-parser');
 let app = express();
 
 // DB setting 거의 고정
-mongoose.set('useNewUrlParser', true);
-mongoose.set('useFindAndModify', false);
-mongoose.set('useCreateIndex', true);
-mongoose.set('useUnifiedTopology', true);
+mongoose.set('useNewUrlParser', true);    // 1
+mongoose.set('useFindAndModify', false);  // 1
+mongoose.set('useCreateIndex', true);     // 1
+mongoose.set('useUnifiedTopology', true); // 1
 // 환경변수에 저장한 DB connection string 불러오기, DB 연결
 mongoose.connect(process.env.MONGO_DB);
 
@@ -25,8 +26,47 @@ db.on('error', err => {
   console.log('DB ERROR:', err);
 });
 
+// Other settings
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname+'/public'));
+
+// json 형식의 데이터를 받는다
+// form에 입력한 데이터가 bodyParser를 통해 req.body로 생성된다.
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended:true}));
+
+// DB schema
+let contactSchema = mongoose.Schema({
+  name: {type: String, required: true, unique: true},
+  email: {type: String},
+  phone: {type: String},
+});
+// model 만들기
+let Contact = mongoose.model('contact', contactSchema);
+
+// route 설정
+// Home
+app.get('/', (req, res) => {
+  res.redirect('/contacts');
+});
+// Contacts - index
+app.get('/contacts', (req, res) => {
+  Contact.find({}, (err, contacts) => {
+    if(err) return res.json(err);
+    res.render('contacts/index', {contacts});
+  });
+});
+// Contacts - New
+ app.get('/contacts/new', (req, res) => {
+   res.render('contacts/new');
+ })
+// Contacts - create
+app.post('/contacts', (req, res) => {
+  Contact.create(req.body, (err, contact) => {
+    if(err) return res.json(err);
+    res.redirect('/contacts');
+  });
+});
 
 let port = 3000;
 app.listen(port, () => {
