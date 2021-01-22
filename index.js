@@ -4,6 +4,7 @@
 let express = require('express');
 let mongoose = require('mongoose');
 let bodyParser = require('body-parser');
+let methodOverride = require('method-override');
 let app = express();
 
 // DB setting 거의 고정
@@ -34,6 +35,8 @@ app.use(express.static(__dirname+'/public'));
 // form에 입력한 데이터가 bodyParser를 통해 req.body로 생성된다.
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
+// _method의 query로 들어오는 값으로 HTTP method를 바꾼다.
+app.use(methodOverride('_method'));
 
 // DB schema
 let contactSchema = mongoose.Schema({
@@ -63,6 +66,34 @@ app.get('/contacts', (req, res) => {
 // Contacts - create
 app.post('/contacts', (req, res) => {
   Contact.create(req.body, (err, contact) => {
+    if(err) return res.json(err);
+    res.redirect('/contacts');
+  });
+});
+// Contacts - show
+app.get('/contacts/:id', (req, res) => {
+  Contact.findOne({_id:req.params.id}, (err, contact) => {
+    if(err) return res.json(err);
+    res.render('contacts/show', {contact:contact});
+  });
+});
+// Contacts - edit
+app.get('/contacts/:id/edit', (req, res) => {
+  Contact.findOne({_id:req.params.id}, (err, contact) => {
+    if(err) return res.json(err);
+    res.render('contacts/edit', {contact:contact});
+  });
+});
+// Contacts - update
+app.put('/contacts/:id', (req, res) => {
+  Contact.findOneAndUpdate({_id:req.params.id}, req.body, (err, contact) => {
+    if(err) return res.json(err);
+    res.redirect('/contacts/'+req.params.id);
+  });
+});
+
+app.delete('/contacts/:id', (req, res) => {
+  Contact.deleteOne({_id:req.params.id}, (err) => {
     if(err) return res.json(err);
     res.redirect('/contacts');
   });
